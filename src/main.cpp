@@ -179,20 +179,16 @@ void loop() {
 
     if(postflag == true){
       if(receivedData[0]==0x01 && receivedData[1]==0x00){
-        //drive motor A
-        FOR(j,8){
-          digitalWrite(WLED1, receivedData[2]>>j & 1);
-          delay(200);
-        } 
-        FOR(j,8){
-          digitalWrite(RLED1, receivedData[3]>>j & 1);
-          delay(200);
-        } 
+        //drive RGB
         analogWrite(RGB_R, (uint8_t)receivedData[3]);
-        delay(500);
+        analogWrite(RGB_G, (uint8_t)receivedData[4]);
+        analogWrite(RGB_B, (uint8_t)receivedData[5]);
+        delay(100);
       }
       postflag = false;
       analogWrite(RGB_R, 0xFF);
+      analogWrite(RGB_G, 0xFF);
+      analogWrite(RGB_B, 0xFF);
     }else{
       FOR(i,dataLength) receivedData[i]=0;
     }
