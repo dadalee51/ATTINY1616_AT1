@@ -1,11 +1,11 @@
 #include <Arduino.h>
-/*** AT1
+/*** AT1 - slave 0x12
  AT1 of DryBot v2.3a, may 10 2024.
  */
 #include <Wire.h>
 #define TF_OFF
 #define ACC_OFF
-#define CLR_ON
+#define CLR_OFF
 
 #ifdef ACC_ON
   #include "SparkFun_LIS2DH12.h"
@@ -19,7 +19,8 @@
   #include "veml6040.h"
   VEML6040 RGBWSensor;
 #endif
-#define FOR(I,N) for(int I=0;i<N;I++)
+
+#define FOR(I,N) for(int I=0;I<N;I++)
 #define PA0 17 //UPDI
 #define PA1 14 //MOSI
 #define PA2 15 //MISO
@@ -55,8 +56,6 @@ int RGB_B = PB5;
 int RGB_R = PA3; //dryBot LEDR 1 = off
 int WLED1 = PA2; //dryBot LEDW 0 = off
 int RLED1 = PA1;
-//#define MY_ADDRESS 0x17 // address for this slave device
-//#define SLAVE_ADDRESS 0x12
 
 #ifdef TF_ON
   int head=0;
@@ -75,6 +74,23 @@ void TCA9548A(uint8_t bus);
 void show_RGB(long);
 void drive_motor(int,int,int,int);
 void signalling(int);
+/*** Wire interface **********************************************/
+#define MASTER_ADDRESS 0x17 
+#define SLAVE_ADDRESS 0x12 
+#define BUFFER_SIZE 20 
+char receivedData[BUFFER_SIZE]; 
+int dataLength = 0; 
+int postflag = 0;
+//master send
+void receiveData(int numBytes) {
+  dataLength = numBytes;
+  Wire.readBytes(receivedData, numBytes);
+  postflag = 1;//mark data ready
+}
+//master read
+void sendData() {
+  Wire.write(receivedData, dataLength);
+}
 
 void setup() {
   pinMode(RLED1,OUTPUT);
@@ -85,10 +101,8 @@ void setup() {
   pinMode(ENC_MB_B,INPUT);
   pinMode(ENC_MC_A,INPUT);
   pinMode(ENC_MC_B,INPUT);
-  
   pinMode(MA1, OUTPUT); 
   pinMode(MA2, OUTPUT);
-
   pinMode(RGB_R, OUTPUT);
   pinMode(RGB_G, OUTPUT);
   pinMode(RGB_B, OUTPUT);
@@ -99,19 +113,17 @@ void setup() {
 //  delay(1000);
 //  digitalWrite(MA1,1);
 //  digitalWrite(MA2,1);
-  
-
-  show_RGB(0xFFFFFF);
   //analogWrite(MA1, 0);
   //analogWrite(MA2, 0);
-  //Wire.begin(MY_ADDRESS); // join i2c bus as slave
-  Wire.begin(); // join i2c bus as master
-  
-  //Wire.onReceive(receiveData); // callback for receiving data
-  //Wire.onRequest(sendData); // callback for sending data
-  digitalWrite(RLED1, 0); //off
+  Wire.begin(SLAVE_ADDRESS); // join i2c bus as slave
+  //Wire.begin(); // join i2c bus as master
+  Wire.onReceive(receiveData); // callback for receiving data
+  Wire.onRequest(sendData); // callback for sending data
+
+  digitalWrite(RLED1, 1); //off
   digitalWrite(WLED1, 0); // 1 on for light
-  
+  show_RGB(0xFFFFFF); //RGB off
+
   #ifdef TF_ON
   sensor.setTimeout(500);
   if (!sensor.init()) {
@@ -155,7 +167,7 @@ void setup() {
   // }
   #endif
   //TCA9548A(0);//back to zero
-  delay(500);
+  //delay(500);
 }
 
 // arduino long type has 4 bytes, 0xFFFFFFFF, signed. ranged -2,147,483,648 to 2,147483,647
@@ -163,9 +175,29 @@ void loop() {
     //digitalWrite(RGB_R,digitalRead(ENC_MA_A)); // ma_a was working but seems pin has died.?
     //digitalWrite(RGB_B,digitalRead(ENC_MB_B)); 
     //digitalWrite(RGB_R,digitalRead(ENC_MB_A)); 
-    //show_RGB(0xFFFDFF);
-    //analogWrite(PIN_PB2, 128);
-    //analogWrite(PIN_PB3, 128);
+    //digitalWrite(RGB_R,0);
+
+    if(postflag == true){
+      if(receivedData[0]==0x01 && receivedData[1]==0x00){
+        //drive motor A
+        FOR(j,8){
+          digitalWrite(WLED1, receivedData[2]>>j & 1);
+          delay(200);
+        } 
+        FOR(j,8){
+          digitalWrite(RLED1, receivedData[3]>>j & 1);
+          delay(200);
+        } 
+        analogWrite(RGB_R, (uint8_t)receivedData[3]);
+        delay(500);
+      }
+      postflag = false;
+      analogWrite(RGB_R, 0xFF);
+    }else{
+      FOR(i,dataLength) receivedData[i]=0;
+    }
+
+    delay(10);
   #ifdef TF_ON
   head=sensor.readRangeContinuousMillimeters();
   if (sensor.timeoutOccurred()) FOR(3)signalling(50);
