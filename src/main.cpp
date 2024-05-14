@@ -57,6 +57,11 @@ int RGB_R = PA3; //dryBot LEDR 1 = off
 int WLED1 = PA2; //dryBot LEDW 0 = off
 int RLED1 = PA1;
 
+//change PB3/4/5 to pwm pins
+//TCA0.SINGLE.CTRLB = (TCA_SINGLE_WGMODE_SINGLESLOPE_gc | TCA_SINGLE_CMP0EN_bm);
+//TCA0.SINGLE.CTRLB = (TCA_SINGLE_CMP0EN_bm | TCA_SINGLE_WGMODE_DSBOTTOM_gc);
+
+
 #ifdef TF_ON
   int head=0;
 #endif
@@ -120,9 +125,9 @@ void setup() {
   Wire.onReceive(receiveData); // callback for receiving data
   Wire.onRequest(sendData); // callback for sending data
 
-  digitalWrite(RLED1, 1); //off
-  digitalWrite(WLED1, 0); // 1 on for light
-  show_RGB(0xFFFFFF); //RGB off
+  digitalWrite(RLED1, 1); // 1 off, 0 on
+  digitalWrite(WLED1, 0); // 1 on , 0 off.
+  show_RGB(0xFFFFFF,0); //RGB off
 
   #ifdef TF_ON
   sensor.setTimeout(500);
@@ -169,8 +174,9 @@ void setup() {
   //TCA9548A(0);//back to zero
   //delay(500);
 }
-
-// arduino long type has 4 bytes, 0xFFFFFFFF, signed. ranged -2,147,483,648 to 2,147483,647
+int dr = 0;
+long data=0;
+// arduino long type has 4 bytes, 0xFF FF FF FF, signed. ranged -2,147,483,648 to 2,147483,647
 void loop() {  
     //digitalWrite(RGB_R,digitalRead(ENC_MA_A)); // ma_a was working but seems pin has died.?
     //digitalWrite(RGB_B,digitalRead(ENC_MB_B)); 
@@ -180,19 +186,21 @@ void loop() {
     if(postflag == true){
       if(receivedData[0]==0x01 && receivedData[1]==0x00){
         //drive RGB
-        analogWrite(RGB_R, (uint8_t)receivedData[3]);
-        analogWrite(RGB_G, (uint8_t)receivedData[4]);
-        analogWrite(RGB_B, (uint8_t)receivedData[5]);
-        delay(100);
+        data = (((long)receivedData[3]&0xff)<<16) |((receivedData[4]&0xff)<<8) | (receivedData[5]&0xff);
+        //show_RGB(data, 2);
+      }else if(receivedData[0]==0x23 && receivedData[1]==0x00){
+        //drive motor A.
+        //show_RGB(1, 2);
+        drive_motor(MA1, MA2, (char)receivedData[3], (char)receivedData[4]); //only works when bytes.
+        //drive_motor(MA1, MA2, 0, 0); //this works but 
       }
       postflag = false;
-      analogWrite(RGB_R, 0xFF);
-      analogWrite(RGB_G, 0xFF);
-      analogWrite(RGB_B, 0xFF);
     }else{
       FOR(i,dataLength) receivedData[i]=0;
     }
-
+    
+//    digitalWrite(RLED1, dr);
+//    dr = !dr;
     delay(10);
   #ifdef TF_ON
   head=sensor.readRangeContinuousMillimeters();
@@ -275,12 +283,30 @@ void signalling(int delaytime) {
     delay(delaytime);
   }
 }
-
+int rled_flip=0;
 //long RGB = 0x000000; //this will be full brightness on all three leds
-void show_RGB(long val){
-  analogWrite(RGB_R,val>>16 & 0xFF);
-  analogWrite(RGB_G,val>>8  & 0xFF);
-  analogWrite(RGB_B,val     & 0xFF);
+void show_RGB(long val, int mode){
+  if (mode == 0){
+    analogWrite(RGB_R,val>>16 & 0xFF);
+    analogWrite(RGB_G,val>>8  & 0xFF);
+    analogWrite(RGB_B,val     & 0xFF);
+  }else if(mode ==1){
+    digitalWrite(RGB_R, val>>16 & 0xFF);
+    digitalWrite(RGB_G,val>>8  & 0xFF);
+    digitalWrite(RGB_B,val     & 0xFF);
+  }else if(mode ==2){
+    //FOR(i,24){
+    FOR(i,8){
+      digitalWrite(WLED1,(val>>i)&1);
+      digitalWrite(RLED1,rled_flip);
+      rled_flip = !rled_flip;
+      delay(100);
+      digitalWrite(WLED1,0);
+      digitalWrite(RLED1,rled_flip);
+      rled_flip = !rled_flip;
+      delay(100);
+    }
+  }
 }
 
 //This is the Multiplexor control
