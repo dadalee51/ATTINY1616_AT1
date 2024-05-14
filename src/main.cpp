@@ -187,12 +187,10 @@ void loop() {
       if(receivedData[0]==0x01 && receivedData[1]==0x00){
         //drive RGB
         data = (((long)receivedData[3]&0xff)<<16) |((receivedData[4]&0xff)<<8) | (receivedData[5]&0xff);
-        //show_RGB(data, 2);
+        show_RGB(data, 0);
       }else if(receivedData[0]==0x23 && receivedData[1]==0x00){
         //drive motor A.
-        //show_RGB(1, 2);
         drive_motor(MA1, MA2, (char)receivedData[3], (char)receivedData[4]); //only works when bytes.
-        //drive_motor(MA1, MA2, 0, 0); //this works but 
       }
       postflag = false;
     }else{
@@ -201,7 +199,7 @@ void loop() {
     
 //    digitalWrite(RLED1, dr);
 //    dr = !dr;
-    delay(10);
+    delay(1);
   #ifdef TF_ON
   head=sensor.readRangeContinuousMillimeters();
   if (sensor.timeoutOccurred()) FOR(3)signalling(50);
@@ -285,15 +283,16 @@ void signalling(int delaytime) {
 }
 int rled_flip=0;
 //long RGB = 0x000000; //this will be full brightness on all three leds
+// three modes: 0=analog all, 1 is digital all, 2 is bitwise least significan bit first.
 void show_RGB(long val, int mode){
   if (mode == 0){
-    analogWrite(RGB_R,val>>16 & 0xFF);
-    analogWrite(RGB_G,val>>8  & 0xFF);
-    analogWrite(RGB_B,val     & 0xFF);
+    analogWrite(RGB_R,(val>>16) & 0xFF);
+    analogWrite(RGB_G,(val>>8)  & 0xFF);
+    analogWrite(RGB_B,val       & 0xFF);
   }else if(mode ==1){
-    digitalWrite(RGB_R, val>>16 & 0xFF);
-    digitalWrite(RGB_G,val>>8  & 0xFF);
-    digitalWrite(RGB_B,val     & 0xFF);
+    digitalWrite(RGB_R,(val>>16) & 0xFF);
+    digitalWrite(RGB_G,(val>>8)  & 0xFF);
+    digitalWrite(RGB_B,val      & 0xFF);
   }else if(mode ==2){
     //FOR(i,24){
     FOR(i,8){
