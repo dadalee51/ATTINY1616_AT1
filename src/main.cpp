@@ -53,6 +53,7 @@ int dataLength = 0;
 int postflag = 0;
 //master send
 void receiveData(int numBytes) {
+  postflag = 0;
   dataLength = numBytes;
   Wire.readBytes(receivedData, numBytes);
   postflag = 1;//mark data ready
@@ -80,9 +81,9 @@ void setup() {
   Wire.begin(SLAVE_ADDRESS); // join i2c bus as slave
   Wire.onReceive(receiveData); // callback for receiving data
   Wire.onRequest(sendData); // callback for sending data
-  digitalWrite(RLED1, 1); // 1 off, 0 on
+  digitalWrite(RLED1, 0); // 1 off, 0 on
   digitalWrite(WLED1, 0); // 1 on , 0 off.
-  show_RGB(0xFFFFFF,0); //RGB off
+  show_RGB(0xFFFF00,0); //RGB off
 
 }
 long data=0;
@@ -98,6 +99,8 @@ void loop() {
       }else if(receivedData[0]==0x23 && receivedData[1]==0x00){
         //drive motor A.
         drive_motor(MA1, MA2, (char)receivedData[3], (char)receivedData[4]); //only works when bytes.
+      }else if(receivedData[0]==0x0F && receivedData[1]==0x33){
+        digitalWrite(WLED1, receivedData[3]);
       }
       postflag = false;
     }else{
