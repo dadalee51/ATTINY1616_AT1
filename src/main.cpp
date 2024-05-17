@@ -33,7 +33,7 @@ int dataLength = 0;
 int postflag = 0;
 //master send
 void receiveData(int numBytes) {
-  postflag = 0;
+  //postflag = 0;
   dataLength = numBytes;
   Wire.readBytes(receivedData, numBytes);
   postflag = 1;//mark data ready
@@ -75,8 +75,8 @@ long data=0xFFFFFF;
 long time=0;
 // arduino long type has 4 bytes, 0xFF FF FF FF, signed. ranged -2,147,483,648 to 2,147483,647
 void loop() {  
-  delay(50);
-  //Serial.println(receivedData);
+  delay(1);
+  // Serial.println(receivedData);
   if(postflag == 1){
     if(receivedData[0]=='R' && receivedData[1]=='G'){
       //drive RGB
@@ -99,7 +99,7 @@ void loop() {
     }else if(receivedData[0]=='L' && receivedData[1]=='o'){
       //received long value
       long rec = *(long*)(&receivedData[3]);
-      // Serial.println(rec);
+      Serial.println(rec);
      }else if(receivedData[0]=='I' && receivedData[1]=='n'){
       //received int value
       int rec = *(int*)(&receivedData[3]);
@@ -109,9 +109,9 @@ void loop() {
     }
     postflag = 0;
   }else{
-    FOR(i,dataLength) receivedData[i]=0;
+    //FOR(i,dataLength) receivedData[i]=0;
   }
-  delay(50);
+  delay(1);
 }
 
 /*
