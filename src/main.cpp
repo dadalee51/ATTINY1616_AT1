@@ -3,50 +3,30 @@
  AT1 of DryBot v2.3a, may 10 2024.
  */
 #include <Wire.h>
-
 #define FOR(I,N) for(int I=0;I<N;I++)
-#define PA0 17 //UPDI
-#define PA1 14 //MOSI
-#define PA2 15 //MISO
-#define PA3 16 //CLK
-#define PA4 0  //SS
-#define PA5 1  
-#define PA6 2  //DAC
-#define PA7 3
-
-#define PB0 9 //SCL
-#define PB1 8 //SDA
-#define PB2 7 //TXD
-#define PB3 6 //RXD
-#define PB4 5 
-#define PB5 4 
-
-#define PC0 10
-#define PC1 11
-#define PC2 12
-#define PC3 13
-
-int ENC_MA_A = PC0;
-int ENC_MA_B = PC1;
-int ENC_MB_A = PC2;
-int ENC_MB_B = PC3;
-int ENC_MC_A = PA6;
-int ENC_MC_B = PA7;
-int MA1 = PA4;
-int MA2 = PA5;
-int RGB_G = PB4;
-int RGB_B = PB5;
-//pwm pins: pb3,4,5, pa3,4,5, pc0/1 : please choose correct settings.
-int RGB_R = PA3; //dryBot LEDR 1 = off
-int WLED1 = PA2; //dryBot LEDW 0 = off
-int RLED1 = PA1;
+#define ENC_MA_A PIN_PC0
+#define ENC_MA_B PIN_PC1
+#define ENC_MB_A PIN_PC2
+#define ENC_MB_B PIN_PC3
+#define ENC_MC_A PIN_PA6
+#define ENC_MC_B PIN_PA7
+#define MA1 PIN_PA4
+#define MA2 PIN_PA5
+#define RGB_G PIN_PB4
+#define RGB_B PIN_PB5
+//PWM pins - see build flags.
+#define RGB_R PIN_PA3 
+#define WLED1 PIN_PA2 //dryBot LEDW 0 = off
+#define RLED1 PIN_PA1 //dryBot LEDR 1 = off
 
 //headers
 void show_RGB(long val,int mode);
 void drive_motor(int,int,int,int);
 void signalling(int);
+void receiveData(int numBytes);
+void sendData();
 /*** Wire interface **********************************************/
-#define SLAVE_ADDRESS 0x12 
+#define SLAVE_ADDRESS 0x12
 #define BUFFER_SIZE 20 
 char receivedData[BUFFER_SIZE]; 
 int dataLength = 0; 
@@ -77,36 +57,61 @@ void setup() {
   pinMode(RGB_R, OUTPUT);
   pinMode(RGB_G, OUTPUT);
   pinMode(RGB_B, OUTPUT);
-
-  Wire.begin(SLAVE_ADDRESS); // join i2c bus as slave
-  Wire.onReceive(receiveData); // callback for receiving data
-  Wire.onRequest(sendData); // callback for sending data
   digitalWrite(RLED1, 0); // 1 off, 0 on
   digitalWrite(WLED1, 0); // 1 on , 0 off.
-  show_RGB(0xFFFF00,0); //RGB off
+  show_RGB(0x80FF00,0); //RGB off
+  //delay(1000);
+  Serial.begin(9600);
+  Serial.println("Hello From AT1");
+  //Serial.println(sizeof(long)); //4
+  //Serial.println(sizeof(int)); //2
+  Wire.onReceive(receiveData); // callback for receiving data
+  Wire.onRequest(sendData); // callback for sending data
+  Wire.begin(SLAVE_ADDRESS); // join i2c bus as slave
+
 
 }
-long data=0;
+long data=0xFFFFFF;
+long time=0;
 // arduino long type has 4 bytes, 0xFF FF FF FF, signed. ranged -2,147,483,648 to 2,147483,647
 void loop() {  
-
-
-    if(postflag == true){
-      if(receivedData[0]==0x01 && receivedData[1]==0x00){
-        //drive RGB
-        data = (((long)receivedData[3]&0xff)<<16) |((receivedData[4]&0xff)<<8) | (receivedData[5]&0xff);
-        show_RGB(data, 0);
-      }else if(receivedData[0]==0x23 && receivedData[1]==0x00){
-        //drive motor A.
-        drive_motor(MA1, MA2, (char)receivedData[3], (char)receivedData[4]); //only works when bytes.
-      }else if(receivedData[0]==0x0F && receivedData[1]==0x33){
-        digitalWrite(WLED1, receivedData[3]);
-      }
-      postflag = false;
+  delay(50);
+  //Serial.println(receivedData);
+  if(postflag == 1){
+    if(receivedData[0]=='R' && receivedData[1]=='G'){
+      //drive RGB
+      data = (long)receivedData[3]<<16 | receivedData[4]<<8 | receivedData[5];
+      show_RGB(data, 0);
+    }else if(receivedData[0]=='M' && receivedData[1]=='A'){
+      //drive motor A.
+      drive_motor(MA1, MA2, (char)receivedData[3], (char)receivedData[4]); //only works when bytes.
+    }else if(receivedData[0]=='W' && receivedData[1]=='L'){
+      //drive WLED1
+      //Serial.println(receivedData);
+      digitalWrite(WLED1, receivedData[3]=='A'?1:0);
+    }else if(receivedData[0]=='C' && receivedData[1]=='h'){
+      //received Char array
+      int lngth = (int)receivedData[3];
+      // FOR(i,lngth){
+      //   Serial.print((char)receivedData[4+i]);
+      // }
+      // Serial.println();
+    }else if(receivedData[0]=='L' && receivedData[1]=='o'){
+      //received long value
+      long rec = *(long*)(&receivedData[3]);
+      // Serial.println(rec);
+     }else if(receivedData[0]=='I' && receivedData[1]=='n'){
+      //received int value
+      int rec = *(int*)(&receivedData[3]);
+      // Serial.println(rec);
     }else{
-      FOR(i,dataLength) receivedData[i]=0;
+      //not in spec.
     }
-    delay(1);
+    postflag = 0;
+  }else{
+    FOR(i,dataLength) receivedData[i]=0;
+  }
+  delay(50);
 }
 
 /*
@@ -154,17 +159,19 @@ void show_RGB(long val, int mode){
     digitalWrite(RGB_R,(val>>16) & 0xFF);
     digitalWrite(RGB_G,(val>>8)  & 0xFF);
     digitalWrite(RGB_B,val      & 0xFF);
-  }else if(mode ==2){
-    //FOR(i,24){
-    FOR(i,8){
+  }
+}
+
+void debugData(long val){
+  int rled_flip=0;
+    FOR(i,16){
       digitalWrite(WLED1,(val>>i)&1);
       digitalWrite(RLED1,rled_flip);
       rled_flip = !rled_flip;
-      delay(100);
+      delay(30);
       digitalWrite(WLED1,0);
       digitalWrite(RLED1,rled_flip);
       rled_flip = !rled_flip;
-      delay(100);
+      delay(30);
     }
-  }
 }
