@@ -93,9 +93,15 @@ void setup() {
 
   show_RGB(0xFFFFFF,0);
 
-  // drive_motor(MA1,MA2,1,70);
-  // delay(300);
-  // drive_motor(MA1,MA2,0,0);
+  drive_motor(MA1,MA2,1,100);
+  delay(300);
+  drive_motor(MA1,MA2,0,0);
+  delay(300);
+  drive_motor(MA1,MA2,-1,100);
+  delay(300);
+  drive_motor(MA1,MA2,2,100);
+  delay(300);
+  drive_motor(MA1,MA2,0,0);
 }
 long data=0xFFFFFF;
 // arduino long type has 4 bytes, 0xFF FF FF FF, signed. ranged -2,147,483,648 to 2,147483,647
@@ -130,26 +136,14 @@ void loop() {
     postflag = 0;
   }else{
     FOR(i,dataLength) receivedData[i]=0;
-    // //do master work
-    // Wire.end();
-    // Wire.begin();
-    // head=sensor.readRangeContinuousMillimeters();
-    // //if (sensor.timeoutOccurred()) FOR(k,3)signalling(50);
-    // outgoingData[0] = head >> 8 & 0xFF;
-    // outgoingData[1] = head & 0xFF;
-    // Wire.end();
-    // Wire.onReceive(receiveData); // callback for receiving data
-    // Wire.onRequest(sendData); // callback for sending data
-    // Wire.begin(SLAVE_ADDRESS); //continue with slave
   }
   delay(1);
 }
 
 /*
- * power = mimic lego's design: +/-255
- * example drive_motor(MA, 255)
- * drive_motor(MB, -50)
- */
+ * dir 1/ 0 / -1 / 10 / 11 / 2
+ * power = mimic lego's design: 0~127
+  */
 void drive_motor(int p1, int p2, int dir, int speed){
   if(dir==1){
     digitalWrite(p2,0);
@@ -160,6 +154,9 @@ void drive_motor(int p1, int p2, int dir, int speed){
   }else if(dir==0) {
     digitalWrite(p1, 0);
     digitalWrite(p2, 0);
+  }else if(dir==2) {
+    digitalWrite(p1, 1);
+    digitalWrite(p2, 1);
   }else if(dir==10){
     digitalWrite(p1, 1);
     digitalWrite(p2, 0);
@@ -178,9 +175,9 @@ void signalling(int delaytime) {
     delay(delaytime);
   }
 }
-int rled_flip=0;
+
 //long RGB = 0x000000; //this will be full brightness on all three leds
-// three modes: 0=analog all, 1 is digital all, 2 is bitwise least significan bit first.
+//modes: 0=analog all, 1 is digital all
 void show_RGB(long val, int mode){
   if (mode == 0){
     analogWrite(RGB_R,(val>>16) & 0xFF);
@@ -192,18 +189,22 @@ void show_RGB(long val, int mode){
     digitalWrite(RGB_B,val      & 0xFF);
   }
 }
-
+/**
+ * Display any byte, ex, 0b00001111, numdig=8
+ * wled blink first 4 times.
+ * rled blink all 8 times.
+*/
 void debugData(long val, int numdig){
   int rled_flip=0;
-    FOR(i,numdig){
-      if(i%8==0)delay(500);
-      digitalWrite(WLED1,(val>>i)&1);
-      digitalWrite(RLED1,rled_flip);
-      rled_flip = !rled_flip;
-      delay(100);
-      digitalWrite(WLED1,0);
-      digitalWrite(RLED1,rled_flip);
-      rled_flip = !rled_flip;
-      delay(100);
-    }
+  FOR(i,numdig){
+    if(i%8==0)delay(500);
+    digitalWrite(WLED1,(val>>i)&1);
+    digitalWrite(RLED1,rled_flip);
+    rled_flip = !rled_flip;
+    delay(100);
+    digitalWrite(WLED1,0);
+    digitalWrite(RLED1,rled_flip);
+    rled_flip = !rled_flip;
+    delay(100);
+  }
 }
