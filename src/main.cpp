@@ -90,23 +90,12 @@ void setup() {
   Wire.onReceive(receiveData); // callback for receiving data
   Wire.onRequest(sendData); // callback for sending data
   Wire.begin(SLAVE_ADDRESS); // join i2c bus as slave
-  // show_RGB(0xFFFFFF,0); //RGB off
-  // FOR(i, 0xFF){
-  //   show_RGB(0xFFFFFF - i*0x010000,0); //from dark to red
-  // }
-  // FOR(i, 0xFF){ //red to blue
-  //   show_RGB(0x00FFFF - i*0x000001 + i*0x010000,0);
-  // }
-  // FOR(i, 0xFF){ //blue to green
-  //   show_RGB(0xFFFF00 - i*0x000100 + i*0x000001,0);
-  // }
-  // FOR(i, 0xFF){ //green to red
-  //   show_RGB(0xFF00FF - i*0x010000 + i*0x000100,0);
-  // }
-  // FOR(i, 0xFF){ //red to off
-  //   show_RGB(0x00FFFF + i*0x010000,0); //from dark to red
-  // }
+
   show_RGB(0xFFFFFF,0);
+
+  // drive_motor(MA1,MA2,1,70);
+  // delay(300);
+  // drive_motor(MA1,MA2,0,0);
 }
 long data=0xFFFFFF;
 // arduino long type has 4 bytes, 0xFF FF FF FF, signed. ranged -2,147,483,648 to 2,147483,647
@@ -118,7 +107,11 @@ void loop() {
       show_RGB(data, 0);
     }else if(receivedData[0]=='M' && receivedData[1]=='A'){
       //drive motor A.
-      drive_motor(MA1, MA2, (char)receivedData[3], (char)receivedData[4]); //only works when bytes.
+      // debugData((char)receivedData[2],8);
+      drive_motor(MA1, MA2, (char)receivedData[2], (char)receivedData[3]); //only works when bytes.
+    }else if(receivedData[0]=='M' && receivedData[1]=='B'){
+      //drive motor B
+      drive_motor(MB1, MB2, (char)receivedData[2], (char)receivedData[3]); //only works when bytes.
     }else if(receivedData[0]=='W' && receivedData[1]=='L'){
       //drive WLED1
       digitalWrite(WLED1, receivedData[3]=='A'?1:0);
