@@ -86,26 +86,28 @@ void setup() {
   // Wire.end();//quit master here,
   // Serial.begin(9600);
   // Serial.println("Hello From AT1");
-  // Wire.setClock(400000);
+  Wire.setClock(400000);
   Wire.onReceive(receiveData); // callback for receiving data
   Wire.onRequest(sendData); // callback for sending data
   Wire.begin(SLAVE_ADDRESS); // join i2c bus as slave
 
   show_RGB(0xFFFFFF,0);
 
-  drive_motor(MA1,MA2,1,100);
-  delay(300);
-  drive_motor(MA1,MA2,0,0);
-  delay(300);
-  drive_motor(MA1,MA2,-1,100);
-  delay(300);
-  drive_motor(MA1,MA2,2,100);
-  delay(300);
-  drive_motor(MA1,MA2,0,0);
+  // drive_motor(MA1,MA2,1,100);
+  // delay(300);
+  // drive_motor(MA1,MA2,0,0);
+  // delay(300);
+  // drive_motor(MA1,MA2,-1,100);
+  // delay(300);
+  // drive_motor(MA1,MA2,2,100);
+  // delay(300);
+  // drive_motor(MA1,MA2,0,0);
 }
 long data=0xFFFFFF;
 // arduino long type has 4 bytes, 0xFF FF FF FF, signed. ranged -2,147,483,648 to 2,147483,647
 void loop() {  
+  int rled_flip=0;
+  delayMicroseconds(500);
   if(postflag == 1){
     if(receivedData[0]=='R' && receivedData[1]=='G'){
       //drive RGB
@@ -132,12 +134,14 @@ void loop() {
       int rec = *(int*)(&receivedData[3]);
     }else{
       //not in spec.
+      digitalWrite(RLED1,rled_flip);
+      rled_flip = !rled_flip;
     }
     postflag = 0;
   }else{
     FOR(i,dataLength) receivedData[i]=0;
   }
-  delay(1);
+  // delay(1);
 }
 
 /*
