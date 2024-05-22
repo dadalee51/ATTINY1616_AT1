@@ -25,8 +25,6 @@ VL53L0X sensor; //0x29
 #define MB1 PIN_PB2
 #define MB2 PIN_PB3
 
-
-
 //headers
 void show_RGB(long val,int mode);
 void drive_motor(int,int,int,int);
@@ -72,27 +70,11 @@ void setup() {
   pinMode(RGB_B, OUTPUT);
   digitalWrite(RLED1, 0); // 1 off, 0 on
   digitalWrite(WLED1, 0); // 1 on , 0 off.
-  // //tof
-  // Wire.begin(); //as master
-  // if (!sensor.init()) {
-  //   FOR(k,3){
-  //   signalling(30);
-  //   delay(1000);
-  //   }
-  // }
-  // sensor.setTimeout(500);
-  // sensor.startContinuous();
-  // delay(100);
-  // Wire.end();//quit master here,
-  // Serial.begin(9600);
-  // Serial.println("Hello From AT1");
   Wire.setClock(400000);
   Wire.onReceive(receiveData); // callback for receiving data
   Wire.onRequest(sendData); // callback for sending data
   Wire.begin(SLAVE_ADDRESS); // join i2c bus as slave
-
-  show_RGB(0xFFFFFF,0);
-
+  show_RGB(0xFFFFFF,0); //turn off RGB
   // drive_motor(MA1,MA2,1,100);
   // delay(300);
   // drive_motor(MA1,MA2,0,0);
@@ -141,7 +123,6 @@ void loop() {
   }else{
     FOR(i,dataLength) receivedData[i]=0;
   }
-  // delay(1);
 }
 
 /*
