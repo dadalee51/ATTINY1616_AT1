@@ -69,7 +69,7 @@ void setup() {
   pinMode(RGB_G, OUTPUT);
   pinMode(RGB_B, OUTPUT);
   digitalWrite(RLED1, 0); // 1 off, 0 on
-  digitalWrite(WLED1, 0); // 1 on , 0 off.
+  digitalWrite(WLED1, 1); // 1 on , 0 off.
   Wire.setClock(400000);
   Wire.onReceive(receiveData); // callback for receiving data
   Wire.onRequest(sendData); // callback for sending data
@@ -88,7 +88,7 @@ void setup() {
 long data=0xFFFFFF;
 // arduino long type has 4 bytes, 0xFF FF FF FF, signed. ranged -2,147,483,648 to 2,147483,647
 void loop() {  
-  int rled_flip=0;
+  // int rled_flip=0;
   delayMicroseconds(500);
   if(postflag == 1){
     if(receivedData[0]=='R' && receivedData[1]=='G'){
@@ -116,8 +116,8 @@ void loop() {
       int rec = *(int*)(&receivedData[3]);
     }else{
       //not in spec.
-      digitalWrite(RLED1,rled_flip);
-      rled_flip = !rled_flip;
+      // digitalWrite(RLED1,rled_flip);
+      // rled_flip = !rled_flip;
     }
     postflag = 0;
   }else{
