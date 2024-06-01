@@ -69,7 +69,7 @@ void setup() {
   pinMode(RGB_G, OUTPUT);
   pinMode(RGB_B, OUTPUT);
   digitalWrite(RLED1, 0); // 1 off, 0 on
-  digitalWrite(WLED1, 1); // 1 on , 0 off.
+  digitalWrite(WLED1, 0); // 1 on , 0 off.
   Wire.setClock(400000);
   Wire.onReceive(receiveData); // callback for receiving data
   Wire.onRequest(sendData); // callback for sending data
